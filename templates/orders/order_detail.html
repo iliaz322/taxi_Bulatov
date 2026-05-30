@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Заказ #{{ object.pk }}{% endblock %}
+
+{% block content %}
+<div class="container page">
+    <div class="page-header">
+        <h1>Заказ #{{ object.pk }}</h1>
+        <p>Подробная информация о маршруте, тарифе и текущем статусе заказа.</p>
+    </div>
+    <section class="detail-grid">
+            <article class="card">
+                <div class="section-header">
+                    <h2>Маршрут</h2>
+                    <span class="status">{{ object.get_status_display }}</span>
+                </div>
+                <h2>Маршрут поездки</h2>
+                <div class="detail-route">
+                    <div class="route-row">
+                        <span class="route-marker"></span>
+                        <div>
+                            <div class="muted">Подача</div>
+                            <strong>{{ object.pickup_address }}</strong>
+                        </div>
+                    </div>
+                    <div class="route-line"></div>
+                    <div class="route-row">
+                        <span class="route-marker end"></span>
+                        <div>
+                            <div class="muted">Назначение</div>
+                            <strong>{{ object.dropoff_address }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            <article class="card">
+                <h2>Детали</h2>
+                <div class="summary-list">
+                    <div class="summary-row"><span class="muted">Время подачи</span><strong>{{ object.pickup_time|date:"d.m.Y H:i" }}</strong></div>
+                    <div class="summary-row"><span class="muted">Тариф</span><strong>{{ object.tariff.name }}</strong></div>
+                    <div class="summary-row"><span class="muted">Стоимость</span><strong>{{ object.estimated_price }} ₽</strong></div>
+                    <div class="summary-row"><span class="muted">Телефон</span><strong>{{ object.phone }}</strong></div>
+                </div>
+            </article>
+    </section>
+</div>
+{% endblock %}

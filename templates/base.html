@@ -1,0 +1,84 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Taxi Project{% endblock %}</title>
+    <script>
+        (function () {
+            try {
+                var savedScale = localStorage.getItem("taxigo-text-scale");
+                var scale = ["sm", "md", "lg"].indexOf(savedScale) !== -1 ? savedScale : "md";
+                document.documentElement.dataset.textScale = scale;
+            } catch (error) {
+                document.documentElement.dataset.textScale = "md";
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container nav">
+            <a class="logo" href="{% url 'rides:index' %}">
+                <span class="logo-mark"></span>
+                <span>TaxiGo</span>
+            </a>
+            <input id="nav-toggle" class="nav-toggle" type="checkbox">
+            <label for="nav-toggle" class="nav-burger" aria-label="Открыть меню">
+                <span></span>
+                <span></span>
+                <span></span>
+            </label>
+            <nav class="nav-links">
+                <a href="{% url 'rides:index' %}">Главная</a>
+                <a href="{% url 'rides:order' %}">Заказать</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'rides:history' %}">История</a>
+                    <a href="{% url 'users:profile' %}">Профиль</a>
+                    <form method="post" action="{% url 'users:logout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link-button nav-pill-button nav-pill-button-dark">Выйти</button>
+                    </form>
+                {% else %}
+                    <a class="nav-pill-button" href="{% url 'users:login' %}">Войти</a>
+                    <a class="nav-pill-button nav-pill-button-dark" href="{% url 'users:register' %}">Регистрация</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            {% if messages %}
+                <div class="messages" id="messages">
+                    {% for message in messages %}
+                        <div class="message {{ message.tags }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer">
+            <div>
+                <strong>TaxiGo</strong>
+                <p>Сервис заказа такси с онлайн-маршрутом, историей поездок и демо-трекингом водителя.</p>
+            </div>
+            <div class="footer-links">
+                <a href="{% url 'rides:index' %}">Главная</a>
+                <a href="{% url 'rides:order' %}">Заказать</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'rides:history' %}">История</a>
+                {% endif %}
+            </div>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Такси за минуту{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-copy hero-copy-dark">
+        <div class="hero-meta">TaxiGo · Поездки по городу и межгороду</div>
+        <h1>Поезжайте куда угодно с TaxiGo</h1>
+        <p>Постройте маршрут, посмотрите цену и вызывайте машину без лишних шагов. Всё главное — на одном экране.</p>
+        <div class="hero-actions">
+            <a class="button" href="{% url 'rides:order' %}">Заказать поездку</a>
+            <a class="button button-light" href="#tariffs">Посмотреть тарифы</a>
+        </div>
+        <div class="hero-points">
+            <span>Подача от 5 минут</span>
+            <span>Прозрачный расчет цены</span>
+            <span>Статус поездки онлайн</span>
+        </div>
+    </div>
+    <div class="hero-card request-card hero-request-card">
+        <div class="hero-card-header">
+            <div>
+                <h2>Закажите поездку сейчас</h2>
+                <p class="muted">Укажите маршрут и сразу откройте страницу расчёта.</p>
+            </div>
+            <span class="rating-chip">24/7</span>
+        </div>
+        <form method="get" action="{% url 'rides:order' %}" class="quick-order-form">
+            <div class="form-group">
+                <label for="quick-from">Откуда</label>
+                <input id="quick-from" class="form-control form-control-soft" type="text" name="from_address" placeholder="Введите адрес подачи">
+            </div>
+            <div class="form-group">
+                <label for="quick-to">Куда</label>
+                <input id="quick-to" class="form-control form-control-soft" type="text" name="to_address" placeholder="Введите адрес назначения">
+            </div>
+            <div class="form-group">
+                <label for="quick-tariff">Тариф</label>
+                <select id="quick-tariff" class="form-control form-control-soft" name="tariff">
+                    {% for tariff in tariffs %}
+                        <option value="{{ tariff.pk }}">{{ tariff.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="button button-full" type="submit">Смотреть цены</button>
+        </form>
+        <div class="hero-request-footnote">
+            <span>Дальше откроется карта, расчёт цены и статус поездки.</span>
+        </div>
+    </div>
+</section>
+
+<section class="section service-strip">
+    <div class="service-strip-item">
+        <strong>Поездки</strong>
+        <span>Городские поездки</span>
+    </div>
+    <div class="service-strip-item">
+        <strong>Предзаказ</strong>
+        <span>Подача ко времени</span>
+    </div>
+    <div class="service-strip-item">
+        <strong>Межгород</strong>
+        <span>Маршруты между городами</span>
+    </div>
+</section>
+
+<section class="section" id="tariffs">
+    <div class="section-header">
+        <h2>Тарифы</h2>
+        <p>Выберите подходящий формат поездки — от ежедневного маршрута до деловых поездок.</p>
+    </div>
+    <div class="cards-grid">
+        {% for item in tariffs_with_cars %}
+            <article class="card tariff-card {% if forloop.counter == 2 %}tariff-card-featured{% endif %}" data-tariff-card>
+                <div class="tariff-top">
+                    <h3>{{ item.tariff.name }}</h3>
+                    <span class="tariff-index">0{{ forloop.counter }}</span>
+                </div>
+                <p>{{ item.tariff.description }}</p>
+                <div class="tariff-price">от {{ item.tariff.min_price }} ₽</div>
+                <div class="muted">{{ item.tariff.price_per_km }} ₽ / км</div>
+                <button class="text-link tariff-details-toggle" type="button" data-tariff-toggle aria-expanded="false">
+                    Какие машины могут приехать
+                </button>
+                <div class="tariff-cars" data-tariff-details hidden>
+                    <strong>Машины для тарифа {{ item.tariff.name }}:</strong>
+                    <ul class="tariff-cars-list">
+                        {% for car_name in item.cars %}
+                            <li>{{ car_name }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <a class="text-link" href="{% url 'rides:order' %}?tariff={{ item.tariff.pk }}">Выбрать тариф</a>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="section promo-band">
+    <div class="promo-band-copy">
+        <h2>Сначала маршрут, потом решение</h2>
+        <p>Карта, расстояние, ориентировочная цена и примерный подъезд водителя собираются в одном сценарии, без прыжков по страницам.</p>
+    </div>
+    <a class="button button-light promo-band-action" href="{% url 'rides:order' %}">Открыть заказ</a>
+</section>
+
+<section class="section">
+    <div class="section-header">
+        <h2>Как это работает</h2>
+    </div>
+    <div class="steps-grid">
+        <article class="card step-card">
+            <div class="step-icon">01</div>
+            <h3>Укажите адреса</h3>
+            <p>Заполните адреса вручную или выберите точки на карте.</p>
+        </article>
+        <article class="card step-card">
+            <div class="step-icon">02</div>
+            <h3>Посмотрите цену заранее</h3>
+            <p>Сразу увидите минимальную цену, стоимость за км и общий расчёт.</p>
+        </article>
+        <article class="card step-card">
+            <div class="step-icon">03</div>
+            <h3>Следите за поездкой</h3>
+            <p>После заказа откроется экран статуса, данных водителя и демо-трекинга.</p>
+        </article>
+    </div>
+</section>
+{% endblock %}

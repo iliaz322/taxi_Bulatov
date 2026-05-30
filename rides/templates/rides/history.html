@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}История поездок{% endblock %}
+
+{% block content %}
+<section class="section-header">
+    <h1>История поездок</h1>
+    <p>Здесь собраны все заказы текущего пользователя.</p>
+</section>
+
+<div class="history-list history-list-uber">
+    {% for ride in rides %}
+        <article class="card history-item history-item-uber history-item-flat">
+            <div class="history-item-copy">
+                <h2>{{ ride.from_address }} → {{ ride.to_address }}</h2>
+                <p class="muted">{{ ride.created_at|date:"d.m.Y H:i" }}</p>
+            </div>
+            <div class="history-meta">
+                <span class="status-pill status-{{ ride.status }}">{{ ride.get_status_display }}</span>
+                <strong>{{ ride.price }} ₽</strong>
+                <a class="button button-small" href="{% url 'rides:ride_status' ride.pk %}">Открыть</a>
+            </div>
+        </article>
+    {% empty %}
+        <article class="card">
+            <h2>Поездок пока нет</h2>
+            <p>Оформите первый заказ, и он появится в истории.</p>
+        </article>
+    {% endfor %}
+</div>
+{% endblock %}

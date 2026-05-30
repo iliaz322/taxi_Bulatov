@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}История заказов{% endblock %}
+
+{% block content %}
+<div class="container page">
+    <div class="page-header">
+        <h1>История заказов</h1>
+        <p>Все поездки собраны в понятном списке: маршрут, дата, статус, тариф и стоимость.</p>
+    </div>
+    <div class="history-list">
+            {% for order in object_list %}
+                <article class="card history-card">
+                    <div class="history-main">
+                        <div class="history-title">
+                            <h3>Заказ #{{ order.pk }}</h3>
+                            <span class="status">{{ order.get_status_display }}</span>
+                        </div>
+                        <p>{{ order.pickup_address }} → {{ order.dropoff_address }}</p>
+                        <div class="history-meta">
+                            <span class="muted">{{ order.pickup_time|date:"d.m.Y H:i" }}</span>
+                            <span class="muted">{{ order.tariff.name }}</span>
+                            <strong>{{ order.estimated_price }} ₽</strong>
+                        </div>
+                    </div>
+                    <a class="button-secondary" href="{% url 'orders:detail' order.pk %}">Открыть</a>
+                </article>
+            {% empty %}
+                <article class="card">
+                    <h3>Пока нет поездок</h3>
+                    <p>Когда пользователь оформит заказ, история появится здесь.</p>
+                </article>
+            {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+<div class="account-shell">
+    <aside class="account-sidebar">
+        <a class="account-sidebar-link" href="{% url 'rides:index' %}">Главная</a>
+        <div class="account-sidebar-link is-active">Персональная информация</div>
+        <a class="account-sidebar-link" href="{% url 'users:security' %}">Безопасность</a>
+    </aside>
+
+    <section class="account-main">
+        <header class="account-header">
+            <h1>Персональная информация</h1>
+            <p class="muted">Основные данные аккаунта, которыми вы пользуетесь при заказе поездок.</p>
+        </header>
+
+        <form method="post" enctype="multipart/form-data" class="account-profile-form">
+            {% csrf_token %}
+            <div class="account-hero">
+                <div class="account-avatar-wrap">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" alt="Аватар пользователя" class="account-avatar-image" id="account-avatar-preview">
+                    {% else %}
+                        <div class="account-avatar-placeholder" id="account-avatar-placeholder">
+                            <span>{{ user.first_name|default:user.username|slice:":1"|upper }}</span>
+                        </div>
+                    {% endif %}
+                    <label for="{{ form.avatar.id_for_label }}" class="account-avatar-edit" title="Изменить фото">✎</label>
+                </div>
+                <div class="account-hero-copy">
+                    <h2>{{ user.first_name|default:user.username }}{% if user.last_name %} {{ user.last_name }}{% endif %}</h2>
+                    <p class="muted">Управляйте основными данными профиля, контактами и настройками аккаунта.</p>
+                    <div class="account-avatar-upload">
+                        <label for="{{ form.avatar.id_for_label }}" class="text-link">Загрузить новую аватарку</label>
+                        <span class="muted" id="avatar-file-name">
+                            {% if user.avatar %}Текущий файл: {{ user.avatar.name|cut:"avatars/" }}{% else %}Файл пока не выбран{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="account-hidden-field">
+                {{ form.avatar }}
+                {% for error in form.avatar.errors %}
+                    <div class="field-error">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="account-settings-list">
+                <div class="account-setting-row">
+                    <div class="account-setting-meta">
+                        <label for="{{ form.first_name.id_for_label }}">Имя</label>
+                        <span class="muted">Как к вам обращаться в поездках</span>
+                    </div>
+                    <div class="account-setting-control">
+                        {{ form.first_name }}
+                        <span class="account-row-arrow">›</span>
+                    </div>
+                    {% for error in form.first_name.errors %}
+                        <div class="field-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="account-setting-row">
+                    <div class="account-setting-meta">
+                        <label for="{{ form.last_name.id_for_label }}">Фамилия</label>
+                        <span class="muted">Показывается в деталях аккаунта</span>
+                    </div>
+                    <div class="account-setting-control">
+                        {{ form.last_name }}
+                        <span class="account-row-arrow">›</span>
+                    </div>
+                    {% for error in form.last_name.errors %}
+                        <div class="field-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="account-setting-row">
+                    <div class="account-setting-meta">
+                        <label for="{{ form.phone.id_for_label }}">Номер телефона</label>
+                        <span class="muted">Основной способ связи с водителем</span>
+                    </div>
+                    <div class="account-setting-control">
+                        {{ form.phone }}
+                        <span class="account-badge account-badge-warning">Проверить</span>
+                        <span class="account-row-arrow">›</span>
+                    </div>
+                    {% for error in form.phone.errors %}
+                        <div class="field-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="account-setting-row">
+                    <div class="account-setting-meta">
+                        <label for="{{ form.email.id_for_label }}">Эл. почта</label>
+                        <span class="muted">Используется для чеков и уведомлений</span>
+                    </div>
+                    <div class="account-setting-control">
+                        {{ form.email }}
+                        <span class="account-badge account-badge-success">Подтверждена</span>
+                        <span class="account-row-arrow">›</span>
+                    </div>
+                    {% for error in form.email.errors %}
+                        <div class="field-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="account-setting-row">
+                    <div class="account-setting-meta">
+                        <label>Размер текста</label>
+                        <span class="muted">Настройка применяется ко всему сайту и сохраняется для следующих визитов.</span>
+                    </div>
+                    <div class="account-setting-control">
+                        <div class="text-scale-controls text-scale-controls-profile" aria-label="Масштаб текста">
+                            <button type="button" class="text-scale-button" data-text-scale-button="sm" aria-label="Уменьшить текст">A-</button>
+                            <button type="button" class="text-scale-button" data-text-scale-button="md" aria-label="Стандартный размер текста">A</button>
+                            <button type="button" class="text-scale-button" data-text-scale-button="lg" aria-label="Увеличить текст">A+</button>
+                        </div>
+                        <span class="account-badge account-badge-success">Для всего сайта</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="account-actions">
+                <button class="button" type="submit">Сохранить изменения</button>
+            </div>
+        </form>
+
+        <section class="account-history">
+            <div class="account-history-header">
+                <h2>Последние поездки</h2>
+                <a class="text-link" href="{% url 'rides:history' %}">Открыть всю историю</a>
+            </div>
+            <div class="history-list">
+                {% for ride in recent_rides %}
+                    <div class="history-item account-history-item">
+                        <div>
+                            <strong>{{ ride.from_address }} → {{ ride.to_address }}</strong>
+                            <div class="muted">{{ ride.created_at|date:"d.m.Y H:i" }}</div>
+                        </div>
+                        <span class="status-pill status-{{ ride.status }}">{{ ride.get_status_display }}</span>
+                    </div>
+                {% empty %}
+                    <p>Поездок пока нет.</p>
+                {% endfor %}
+            </div>
+        </section>
+    </section>
+</div>
+{% endblock %}

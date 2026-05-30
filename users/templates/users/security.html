@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Безопасность{% endblock %}
+
+{% block content %}
+<div class="account-shell">
+    <aside class="account-sidebar">
+        <a class="account-sidebar-link" href="{% url 'rides:index' %}">Главная</a>
+        <a class="account-sidebar-link" href="{% url 'users:profile' %}">Персональная информация</a>
+        <div class="account-sidebar-link is-active">Безопасность</div>
+    </aside>
+
+    <section class="account-main">
+        <header class="account-header">
+            <h1>Безопасность</h1>
+            <p class="muted">Здесь можно поменять пароль для входа в аккаунт.</p>
+        </header>
+
+        <div class="account-security-wrap">
+            <section class="account-security-intro">
+                <div class="account-security-item">
+                    <div>
+                        <h2>Пароль</h2>
+                        <p class="muted">Обновите пароль, чтобы защитить доступ к аккаунту.</p>
+                    </div>
+                    <span class="account-row-arrow">›</span>
+                </div>
+            </section>
+
+            <form method="post" class="account-security-form">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}
+                            <div class="field-error">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                <div class="account-actions">
+                    <button class="button" type="submit">Сменить пароль</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+{% endblock %}

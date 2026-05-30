@@ -1,0 +1,32 @@
+[
+  {
+    "model": "rides.tariff",
+    "pk": 1,
+    "fields": {
+      "name": "Эконом",
+      "price_per_km": "21.00",
+      "min_price": "249.00",
+      "description": "Оптимальный вариант для ежедневных поездок по городу."
+    }
+  },
+  {
+    "model": "rides.tariff",
+    "pk": 2,
+    "fields": {
+      "name": "Комфорт",
+      "price_per_km": "30.00",
+      "min_price": "379.00",
+      "description": "Более просторный автомобиль и повышенный комфорт в поездке."
+    }
+  },
+  {
+    "model": "rides.tariff",
+    "pk": 3,
+    "fields": {
+      "name": "Бизнес",
+      "price_per_km": "48.00",
+      "min_price": "590.00",
+      "description": "Премиальный класс для деловых поездок и особых случаев."
+    }
+  }
+]

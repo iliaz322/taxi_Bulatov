@@ -1,0 +1,10 @@
+.venv/
+.venv-1/
+__pycache__/
+*.py[cod]
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+taxi.log
+.DS_Store

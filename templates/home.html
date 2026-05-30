@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Служба такси{% endblock %}
+
+{% block content %}
+<div class="container page">
+    <section class="landing-hero">
+        <div class="landing-main">
+            <div class="landing-copy">
+                <span class="landing-kicker">Городские и междугородние поездки</span>
+                <h1>Такси, которое можно заказать за минуту.</h1>
+                <p class="lead">Чистый интерфейс, быстрый заказ, прозрачные тарифы и понятный статус поездки. Без перегруза, без лишних шагов.</p>
+                <div class="action-row">
+                    <a class="button" href="{% url 'orders:create' %}">Заказать поездку</a>
+                    <a class="button-secondary" href="#tariffs">Смотреть тарифы</a>
+                </div>
+            </div>
+            <div class="landing-stats">
+                <div class="landing-stat">
+                    <span>Средняя подача</span>
+                    <strong>5 мин</strong>
+                </div>
+                <div class="landing-stat">
+                    <span>Поддержка</span>
+                    <strong>24/7</strong>
+                </div>
+                <div class="landing-stat">
+                    <span>Онлайн-статус</span>
+                    <strong>Всегда виден</strong>
+                </div>
+            </div>
+        </div>
+        <aside class="landing-side">
+            <div class="ride-preview">
+                <div class="ride-preview-row">
+                    <span>Откуда</span>
+                    <strong>ул. Ленина, 1</strong>
+                </div>
+                <div class="ride-preview-divider"></div>
+                <div class="ride-preview-row">
+                    <span>Куда</span>
+                    <strong>Аэропорт Шереметьево</strong>
+                </div>
+                <div class="ride-preview-meta">
+                    <div>
+                        <span>Тариф</span>
+                        <strong>Комфорт</strong>
+                    </div>
+                    <div>
+                        <span>Подача</span>
+                        <strong>5 мин</strong>
+                    </div>
+                </div>
+                <div class="ride-preview-price">
+                    <span>Ориентировочная стоимость</span>
+                    <strong>1 250 ₽</strong>
+                </div>
+                <div class="ride-preview-status">
+                    <span class="status status-dark">Водитель назначается</span>
+                    <span class="muted-light">Обновление статуса в личном кабинете</span>
+                </div>
+            </div>
+            <div class="landing-side-note">
+                <h2>Как это работает</h2>
+                <ol class="simple-list">
+                    <li>Клиент указывает маршрут и время.</li>
+                    <li>Диспетчер получает новую заявку.</li>
+                    <li>Статус поездки меняется онлайн.</li>
+                </ol>
+            </div>
+        </aside>
+    </section>
+
+    <section class="home-strip">
+        <article class="strip-card">
+            <h3>Быстрое оформление</h3>
+            <p>Одна понятная форма вместо длинного сценария.</p>
+        </article>
+        <article class="strip-card">
+            <h3>Прозрачные тарифы</h3>
+            <p>Цена за км и минимальная стоимость видны сразу.</p>
+        </article>
+        <article class="strip-card">
+            <h3>Нормальная диспетчерская</h3>
+            <p>Новые и активные заказы собраны в одном месте.</p>
+        </article>
+    </section>
+
+    <section class="page-header" id="tariffs">
+        <h2 class="section-title">Тарифы</h2>
+        <p>Выберите подходящий вариант поездки. Карточки компактные, но информативные: без мусора, только нужное.</p>
+    </section>
+
+    <section class="tariff-grid home-tariff-grid">
+        {% for tariff in tariffs %}
+            <article class="card tariff-card rate-card">
+                <div class="rate-card-top">
+                    <h3>{{ tariff.name }}</h3>
+                    <span class="rate-card-dot"></span>
+                </div>
+                <div class="tariff-meta">
+                    <p>{{ tariff.description|default:"Подходит для ежедневных поездок по городу." }}</p>
+                </div>
+                <div class="rate-card-price">
+                    <div class="price">от {{ tariff.minimum_price }} ₽</div>
+                    <div class="muted">{{ tariff.price_per_km }} ₽ / км</div>
+                </div>
+                <ul class="rate-list">
+                    <li>Онлайн-оформление без звонка</li>
+                    <li>Статус заказа после подтверждения</li>
+                    <li>Подходит для поездок по городу</li>
+                </ul>
+                <div>
+                    <a class="button" href="{% url 'orders:create' %}">Выбрать тариф</a>
+                </div>
+            </article>
+        {% empty %}
+            <article class="card tariff-card rate-card">
+                <div class="rate-card-top">
+                    <h3>Базовый</h3>
+                    <span class="rate-card-dot"></span>
+                </div>
+                <div class="tariff-meta">
+                    <p>Создайте тарифы в админ-панели, и они появятся здесь автоматически.</p>
+                </div>
+                <div class="rate-card-price">
+                    <div class="price">от 150 ₽</div>
+                    <div class="muted">20 ₽ / км</div>
+                </div>
+                <ul class="rate-list">
+                    <li>Базовый вариант для города</li>
+                    <li>Быстрая подача при доступности</li>
+                    <li>Простой заказ через сайт</li>
+                </ul>
+                <div>
+                    <a class="button" href="{% url 'orders:create' %}">Оформить заказ</a>
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+
+    <section class="home-bottom-grid">
+        <article class="dark-panel">
+            <h2>Оформление без перегруза</h2>
+            <p>Маршрут, время, телефон, тариф и комментарий — всё, что реально нужно клиенту для заказа.</p>
+            <a class="button-secondary button-secondary-dark" href="{% url 'orders:create' %}">Перейти к форме</a>
+        </article>
+        <article class="card home-note">
+            <h2>Для дипломного проекта</h2>
+            <p>Сайт уже поддерживает роли, историю поездок, базовую диспетчерскую панель и дальнейшее подключение карты.</p>
+            <div class="home-note-list">
+                <span>Клиент</span>
+                <span>Диспетчер</span>
+                <span>Администратор</span>
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}

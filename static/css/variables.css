@@ -1,0 +1,49 @@
+:root {
+  --color-midnight-ink: #000000;
+  --color-canvas-white: #ffffff;
+  --color-whisper-gray: #f6f6f6;
+  --color-charcoal-text: #333333;
+  --color-input-border-gray: #767676;
+  --color-subtle-silver: #afafaf;
+  --color-slate-shadow: #d6d6d6;
+  --color-lagoon-mist: #9dcdd6;
+
+  --font-ubermovetext: "UberMoveText", system-ui, sans-serif;
+  --font-ubermove: "UberMove", system-ui, sans-serif;
+
+  --text-caption: 12px;
+  --text-body-sm: 14px;
+  --text-body: 16px;
+  --text-subheading: 18px;
+  --text-heading-sm: 20px;
+  --text-heading: 24px;
+  --text-display: 36px;
+  --text-display-lg: 52px;
+
+  --leading-caption: 1.67;
+  --leading-body-sm: 1.43;
+  --leading-body: 1.5;
+  --leading-subheading: 1.33;
+  --leading-heading-sm: 1.4;
+  --leading-heading: 1.33;
+  --leading-display: 1.22;
+  --leading-display-lg: 1.23;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-48: 48px;
+  --spacing-64: 64px;
+
+  --radius-buttons: 8px;
+  --radius-capsule: 999px;
+  --radius-cards: 8px;
+}

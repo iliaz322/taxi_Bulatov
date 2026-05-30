@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Статус поездки{% endblock %}
+
+{% block content %}
+<section class="section-header">
+    <h1>Статус поездки</h1>
+    <p>Следите за поездкой и данными назначенного водителя.</p>
+</section>
+
+<div class="status-layout">
+    <article class="card">
+        <div class="status-row">
+            <span class="status-pill status-{{ ride.status }}">{{ ride.get_status_display }}</span>
+            <span class="muted">{{ ride.created_at|date:"d.m.Y H:i" }}</span>
+        </div>
+        <div class="route-block">
+            <div>
+                <span class="muted">Маршрут</span>
+                <h2>{{ ride.from_address }} → {{ ride.to_address }}</h2>
+            </div>
+            <div class="summary-item">
+                <span>Стоимость</span>
+                <strong>{{ ride.price }} ₽</strong>
+            </div>
+            <div class="summary-item">
+                <span>Тариф</span>
+                <strong>{{ ride.tariff.name }}</strong>
+            </div>
+        </div>
+    </article>
+
+    <article class="card status-driver-card">
+        <h2>Водитель</h2>
+        <div class="driver-card">
+            <p><strong>{{ ride.driver_name|default:"Водитель подбирается" }}</strong></p>
+            <p>{{ ride.driver_car|default:"Автомобиль будет назначен" }}</p>
+            <p>{{ ride.driver_plate|default:"Номер появится после назначения" }}</p>
+        </div>
+    </article>
+</div>
+
+{% if ride.status != "cancelled" %}
+    <article class="card tracking-card">
+        <div class="tracking-card-header">
+            <div>
+                <h2>Машина на карте</h2>
+                <p class="muted">
+                    {% if ride.status == "active" %}
+                        Показываем примерный маршрут до точки назначения.
+                    {% else %}
+                        Показываем примерный подъезд водителя к точке подачи.
+                    {% endif %}
+                </p>
+            </div>
+            <span class="tracking-badge">Демо-трекинг</span>
+        </div>
+        <div id="ride-status-map" class="ride-map" aria-label="Карта движения водителя"></div>
+        <div class="tracking-summary">
+            <div>
+                <span class="muted">Сценарий</span>
+                <strong id="tracking-mode-label">
+                    {% if ride.status == "active" %}Водитель везёт пассажира{% else %}Водитель едет на подачу{% endif %}
+                </strong>
+            </div>
+            <div>
+                <span class="muted">Примерное время</span>
+                <strong id="tracking-eta">—</strong>
+            </div>
+            <div>
+                <span class="muted">Осталось по маршруту</span>
+                <strong id="tracking-distance">—</strong>
+            </div>
+        </div>
+    </article>
+{% endif %}
+
+{% if ride.status == "completed" and ride.rating is None and user.is_authenticated and user == ride.user %}
+    <article class="card review-card">
+        <h2>Оценить поездку</h2>
+        <form method="post" action="{% url 'rides:rate_ride' ride.pk %}">
+            {% csrf_token %}
+            {{ review_form.rating }}
+            <div class="stars" data-stars>
+                <span data-value="1">★</span>
+                <span data-value="2">★</span>
+                <span data-value="3">★</span>
+                <span data-value="4">★</span>
+                <span data-value="5">★</span>
+            </div>
+            <div class="form-group">
+                <label for="{{ review_form.comment.id_for_label }}">Комментарий</label>
+                {{ review_form.comment }}
+            </div>
+            <button class="button" type="submit">Сохранить оценку</button>
+        </form>
+    </article>
+{% elif ride.rating %}
+    <article class="card">
+        <h2>Оценка поездки</h2>
+        <p>Вы оценили поездку на <strong>{{ ride.rating }}/5</strong>.</p>
+    </article>
+{% endif %}
+
+{{ tracking_payload|json_script:"ride-tracking-payload" }}
+<input type="hidden" id="ride-demo-csrf" value="{{ csrf_token }}">
+<script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_maps_api_key }}&lang=ru_RU"></script>
+{% endblock %}

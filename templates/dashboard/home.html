@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Панель диспетчера{% endblock %}
+
+{% block content %}
+<div class="container page">
+    <div class="page-header">
+        <h1>Панель управления заказами</h1>
+        <p>Рабочий экран диспетчера с поиском по заявкам и списками доступных заказов и автомобилей.</p>
+    </div>
+    <div class="toolbar">
+        <form class="search-form" method="get">
+            <input class="form-control" type="text" name="q" value="{{ query }}" placeholder="Поиск по телефону или имени">
+            <button class="button" type="submit">Найти</button>
+        </form>
+        <div class="muted">
+            Новые: {{ new_orders|length }} · Активные: {{ active_orders|length }} · Свободные автомобили: {{ available_vehicles|length }}
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+            <section class="table-panel">
+                <div class="panel-header">
+                    <h2>Новые заказы</h2>
+                    <span class="muted">{{ new_orders|length }}</span>
+                </div>
+                <div class="panel-body">
+                    <table class="list-table">
+                        <thead>
+                            <tr><th>Заказ</th><th>Телефон</th><th>Статус</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for order in new_orders %}
+                                <tr>
+                                    <td>#{{ order.pk }}</td>
+                                    <td>{{ order.phone }}</td>
+                                    <td><span class="status">{{ order.get_status_display }}</span></td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="3">Нет новых заказов.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="table-panel">
+                <div class="panel-header">
+                    <h2>Активные заказы</h2>
+                    <span class="muted">{{ active_orders|length }}</span>
+                </div>
+                <div class="panel-body">
+                    <table class="list-table">
+                        <thead>
+                            <tr><th>Заказ</th><th>Телефон</th><th>Статус</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for order in active_orders %}
+                                <tr>
+                                    <td>#{{ order.pk }}</td>
+                                    <td>{{ order.phone }}</td>
+                                    <td><span class="status">{{ order.get_status_display }}</span></td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="3">Нет активных заказов.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="table-panel">
+                <div class="panel-header">
+                    <h2>Свободные автомобили</h2>
+                    <span class="muted">{{ available_vehicles|length }}</span>
+                </div>
+                <div class="panel-body">
+                    <table class="list-table">
+                        <thead>
+                            <tr><th>Госномер</th><th>Автомобиль</th><th>Статус</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for vehicle in available_vehicles %}
+                                <tr>
+                                    <td>{{ vehicle.license_plate }}</td>
+                                    <td>{{ vehicle.brand }} {{ vehicle.model }}</td>
+                                    <td><span class="status">Свободен</span></td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="3">Нет свободных автомобилей.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Заказ такси{% endblock %}
+
+{% block content %}
+<section class="section-header order-page-header">
+    <h1>Оформление поездки</h1>
+    <p>Выберите адреса, посмотрите цену и подтвердите поездку. Экран построен как единый поток заказа, а не как длинная форма.</p>
+</section>
+
+<div class="order-layout">
+    <aside class="card summary-card uber-summary-card order-summary-main">
+        <div class="summary-card-header">
+            <h2>Детали поездки</h2>
+            <span class="muted">Примерный расчёт</span>
+        </div>
+        <div class="summary-item">
+            <span>Подача и старт</span>
+            <strong id="calc-min-price">—</strong>
+        </div>
+        <div class="summary-item">
+            <span>Цена за км после 2 км</span>
+            <strong id="calc-price-per-km">—</strong>
+        </div>
+        <div class="summary-item summary-total">
+            <span>Примерная стоимость</span>
+            <strong id="calc-total">—</strong>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-note">
+            <strong>Что дальше</strong>
+            <p class="muted">После создания заказа система назначит водителя и откроет экран статуса с движением машины на карте.</p>
+        </div>
+    </aside>
+
+    <div class="card order-card request-card order-request-main">
+        <div class="order-card-header">
+            <div>
+                <h2>Выберите маршрут</h2>
+                <p class="muted">Сначала отметьте точки на карте или заполните адреса ниже. После этого проверьте тариф и подтвердите заказ.</p>
+            </div>
+        </div>
+        <div class="map-order-shell">
+            <div class="map-toolbar">
+                <div class="map-mode">
+                    <button class="map-mode-button is-active" type="button" data-map-mode="from">Ставлю точку отправления</button>
+                    <button class="map-mode-button" type="button" data-map-mode="to">Ставлю точку назначения</button>
+                </div>
+                <button class="map-clear-button" type="button" id="clear-map-route">Очистить маршрут</button>
+            </div>
+            <div id="ride-map" class="ride-map" aria-label="Карта выбора маршрута"></div>
+            <div class="map-helper">
+                <span id="map-helper-text">Сначала выберите точку отправления на карте.</span>
+                <span class="muted">Маршрут строится по дорогам через бесплатный OSRM, расстояние и стоимость обновляются автоматически.</span>
+            </div>
+        </div>
+        <form method="post" class="ride-order-form">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% for error in field.errors %}
+                        <div class="field-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="button">Подтвердить поездку</button>
+        </form>
+    </div>
+</div>
+
+{{ tariffs_json|json_script:"tariffs-data" }}
+<script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_maps_api_key }}&lang=ru_RU"></script>
+{% endblock %}

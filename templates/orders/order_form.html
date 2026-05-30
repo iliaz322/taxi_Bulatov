@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Новый заказ{% endblock %}
+
+{% block content %}
+<div class="container page">
+    <div class="page-header">
+        <h1>Заказ такси</h1>
+        <p>Укажите маршрут, выберите тариф и подтвердите поездку. Логика экрана повторяет привычный сценарий заказа в приложении такси.</p>
+    </div>
+
+    <section class="booking-layout">
+        <div class="booking-main">
+            <form method="post" novalidate class="booking-form" id="booking-form">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="message">
+                        {% for error in form.non_field_errors %}
+                            <div class="field-error">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="booking-panel route-panel">
+                    <div class="panel-title-row">
+                        <h2>Маршрут</h2>
+                        <span class="muted">Заполните точки поездки</span>
+                    </div>
+                    <div class="route-fields">
+                        <div class="route-track">
+                            <span class="route-node route-node-start"></span>
+                            <span class="route-path"></span>
+                            <span class="route-node route-node-end"></span>
+                        </div>
+                        <div class="route-inputs">
+                            <div class="form-group form-group-compact">
+                                <label for="{{ form.pickup_address.id_for_label }}">{{ form.pickup_address.label }}</label>
+                                {{ form.pickup_address }}
+                                {% for error in form.pickup_address.errors %}
+                                    <div class="field-error">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="form-group form-group-compact">
+                                <label for="{{ form.dropoff_address.id_for_label }}">{{ form.dropoff_address.label }}</label>
+                                {{ form.dropoff_address }}
+                                {% for error in form.dropoff_address.errors %}
+                                    <div class="field-error">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="route-hints">
+                        <span>Дом</span>
+                        <span>Работа</span>
+                        <span>Аэропорт</span>
+                    </div>
+                </div>
+
+                <div class="booking-panel timing-panel">
+                    <div class="panel-title-row">
+                        <h2>Когда поедем</h2>
+                    </div>
+                    <div class="timing-toggle">
+                        {% for choice in form.ride_timing %}
+                            <label class="timing-option">
+                                {{ choice.tag }}
+                                <span>{{ choice.choice_label }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    <div class="form-group" id="pickup-time-group">
+                        <label for="{{ form.pickup_time.id_for_label }}">{{ form.pickup_time.label }}</label>
+                        {{ form.pickup_time }}
+                        {% for error in form.pickup_time.errors %}
+                            <div class="field-error">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="booking-panel tariffs-panel">
+                    <div class="panel-title-row">
+                        <h2>Тариф</h2>
+                        <span class="muted">Выберите подходящий вариант</span>
+                    </div>
+                    <div class="tariff-selector" id="tariff-selector">
+                        {% for tariff in tariffs %}
+                            <button
+                                type="button"
+                                class="tariff-option{% if form.tariff.value|stringformat:'s' == tariff.pk|stringformat:'s' or not form.tariff.value and forloop.first %} is-selected{% endif %}"
+                                data-tariff-id="{{ tariff.pk }}"
+                                data-price-per-km="{{ tariff.price_per_km }}"
+                                data-minimum-price="{{ tariff.minimum_price }}"
+                            >
+                                <strong>{{ tariff.name }}</strong>
+                                <span>{{ tariff.minimum_price }} ₽ минимум</span>
+                                <small>{{ tariff.price_per_km }} ₽ / км</small>
+                            </button>
+                        {% endfor %}
+                    </div>
+                    <div class="hidden-select">
+                        {{ form.tariff }}
+                    </div>
+                    {% for error in form.tariff.errors %}
+                        <div class="field-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="booking-panel details-panel">
+                    <div class="panel-title-row">
+                        <h2>Дополнительно</h2>
+                    </div>
+                    <div class="details-grid">
+                        <div class="form-group">
+                            <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+                            {{ form.phone }}
+                            {% for error in form.phone.errors %}
+                                <div class="field-error">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.estimated_distance_km.id_for_label }}">{{ form.estimated_distance_km.label }}</label>
+                            {{ form.estimated_distance_km }}
+                            {% for error in form.estimated_distance_km.errors %}
+                                <div class="field-error">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.comment.id_for_label }}">{{ form.comment.label }}</label>
+                        {{ form.comment }}
+                        {% for error in form.comment.errors %}
+                            <div class="field-error">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <aside class="booking-sidebar">
+            <div class="booking-summary">
+                <h2>Поездка</h2>
+                <div class="summary-hero">
+                    <strong id="summary-price">— ₽</strong>
+                    <span id="summary-subtitle">Выберите тариф и расстояние</span>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-line">
+                        <span>Маршрут</span>
+                        <strong id="summary-route">Не заполнен</strong>
+                    </div>
+                    <div class="summary-line">
+                        <span>Подача</span>
+                        <strong id="summary-time">Как можно скорее</strong>
+                    </div>
+                    <div class="summary-line">
+                        <span>Тариф</span>
+                        <strong id="summary-tariff">—</strong>
+                    </div>
+                </div>
+                <button class="button booking-submit" type="submit" form="booking-form">Заказать такси</button>
+                <p class="helper-text">После подтверждения заказ появится в истории поездок и в панели диспетчера.</p>
+            </div>
+        </aside>
+    </section>
+</div>
+
+<script>
+  (() => {
+    const tariffSelect = document.getElementById("id_tariff");
+    const distanceInput = document.getElementById("id_estimated_distance_km");
+    const pickupInput = document.getElementById("id_pickup_address");
+    const dropoffInput = document.getElementById("id_dropoff_address");
+    const pickupTimeInput = document.getElementById("id_pickup_time");
+    const rideTimingInputs = document.querySelectorAll('input[name="ride_timing"]');
+    const tariffButtons = document.querySelectorAll(".tariff-option");
+    const pickupTimeGroup = document.getElementById("pickup-time-group");
+    const summaryPrice = document.getElementById("summary-price");
+    const summaryRoute = document.getElementById("summary-route");
+    const summaryTime = document.getElementById("summary-time");
+    const summaryTariff = document.getElementById("summary-tariff");
+    const summarySubtitle = document.getElementById("summary-subtitle");
+
+    const toNumber = (value) => Number(String(value).replace(",", ".")) || 0;
+
+    const selectedTariffButton = () =>
+      document.querySelector('.tariff-option.is-selected') || tariffButtons[0] || null;
+
+    const syncTariffSelect = () => {
+      const active = selectedTariffButton();
+      if (!active || !tariffSelect) return;
+      tariffSelect.value = active.dataset.tariffId;
+      summaryTariff.textContent = active.querySelector("strong")?.textContent || "—";
+    };
+
+    const updatePrice = () => {
+      const active = selectedTariffButton();
+      if (!active) return;
+      const distance = toNumber(distanceInput?.value);
+      const perKm = toNumber(active.dataset.pricePerKm);
+      const minimum = toNumber(active.dataset.minimumPrice);
+      const price = Math.max(distance * perKm, minimum);
+      summaryPrice.textContent = `${price.toFixed(2).replace(".", ",")} ₽`;
+      summarySubtitle.textContent = `${distance.toFixed(1).replace(".", ",")} км · минимум ${minimum.toFixed(2).replace(".", ",")} ₽`;
+    };
+
+    const updateRoute = () => {
+      const from = pickupInput?.value?.trim();
+      const to = dropoffInput?.value?.trim();
+      summaryRoute.textContent = from && to ? `${from} → ${to}` : "Не заполнен";
+    };
+
+    const updateTiming = () => {
+      const mode = document.querySelector('input[name="ride_timing"]:checked')?.value;
+      const isScheduled = mode === "scheduled";
+      if (pickupTimeGroup) {
+        pickupTimeGroup.style.display = isScheduled ? "grid" : "none";
+      }
+      if (!isScheduled) {
+        summaryTime.textContent = "Как можно скорее";
+        return;
+      }
+      summaryTime.textContent = pickupTimeInput?.value
+        ? pickupTimeInput.value.replace("T", " ")
+        : "Выберите время";
+    };
+
+    tariffButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        tariffButtons.forEach((item) => item.classList.remove("is-selected"));
+        button.classList.add("is-selected");
+        syncTariffSelect();
+        updatePrice();
+      });
+    });
+
+    [distanceInput, pickupInput, dropoffInput, pickupTimeInput].forEach((field) => {
+      field?.addEventListener("input", () => {
+        updatePrice();
+        updateRoute();
+        updateTiming();
+      });
+    });
+
+    rideTimingInputs.forEach((input) => input.addEventListener("change", updateTiming));
+
+    syncTariffSelect();
+    updatePrice();
+    updateRoute();
+    updateTiming();
+  })();
+</script>
+{% endblock %}

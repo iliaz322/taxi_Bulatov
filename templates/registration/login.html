@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+<div class="container page">
+    <div class="page-header">
+        <h1>Вход в систему</h1>
+        <p>Авторизация для клиентов, диспетчеров и администраторов.</p>
+    </div>
+    <section class="auth-layout">
+            <div class="card">
+                <h2>Доступ</h2>
+                <div class="history-list">
+                    <div class="surface">
+                        <strong>Клиент</strong>
+                        <p>Оформление и просмотр поездок.</p>
+                    </div>
+                    <div class="surface">
+                        <strong>Диспетчер</strong>
+                        <p>Контроль новых и активных заказов.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="form-panel">
+                <h2>Введите данные</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="form-group">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                    {% endfor %}
+                    <button class="button" type="submit">Войти</button>
+                </form>
+            </div>
+    </section>
+</div>
+{% endblock %}
