@@ -1,0 +1,28 @@
+{% load static %}
+{% extends "base.html" %}
+
+{% block title %}Нет сети | TaxiGo{% endblock %}
+
+{% block content %}
+<section class="section-header">
+    <p class="eyebrow">PWA режим</p>
+    <h1>Интернет временно недоступен</h1>
+    <p class="section-lead">
+        TaxiGo сохранил основные файлы приложения. Когда соединение появится снова, можно продолжить заказ и просмотр поездок.
+    </p>
+</section>
+
+<section class="card offline-card">
+    <div class="offline-card-mark" aria-hidden="true">
+        <img src="{% static 'img/taxigo-mark.svg' %}" alt="" width="56" height="56">
+    </div>
+    <div class="offline-card-copy">
+        <h2>Что доступно сейчас</h2>
+        <p>Главная страница, форма входа и базовый интерфейс уже сохранены в памяти устройства.</p>
+        <div class="offline-actions">
+            <a class="button" href="{% url 'rides:index' %}">На главную</a>
+            <button class="button button-light" type="button" onclick="window.location.reload()">Повторить попытку</button>
+        </div>
+    </div>
+</section>
+{% endblock %}

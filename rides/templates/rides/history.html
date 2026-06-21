@@ -17,6 +17,17 @@
             </div>
             <div class="history-meta">
                 <span class="status-pill status-{{ ride.status }}">{{ ride.get_status_display }}</span>
+                <span class="status-pill {% if ride.payment_status == 'paid' %}status-completed{% else %}status-searching{% endif %}">
+                    {% if ride.payment_status == "paid" %}
+                        Оплачено {% if ride.payment_method == "card" %}картой{% else %}наличными{% endif %}
+                    {% elif ride.payment_status == "authorized" %}
+                        Карта привязана
+                    {% elif ride.payment_status == "cash_pending" %}
+                        Оплата наличными
+                    {% else %}
+                        Не оплачено
+                    {% endif %}
+                </span>
                 <strong>{{ ride.price }} ₽</strong>
                 <a class="button button-small" href="{% url 'rides:ride_status' ride.pk %}">Открыть</a>
             </div>

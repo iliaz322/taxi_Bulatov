@@ -49,3 +49,17 @@ def calculate_ride_price(distance_km, tariff):
         multiplier = Decimal("1.05")
 
     return (subtotal * multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def build_dispatcher_reply(message_text):
+    text = message_text.lower()
+
+    if "оплат" in text or "карт" in text:
+        return "Платёж отмечен как демонстрационный. Если форма не проходит, проверьте номер карты, срок действия и CVV."
+    if "водител" in text or "машин" in text:
+        return "По вашему заказу уже назначен автомобиль, информация о водителе отображается в карточке заказа."
+    if "когда" in text or "сколько" in text or "время" in text:
+        return "Ориентировочное время подачи показано на карте. Мы обновляем статус заказа по мере движения автомобиля."
+    if "маршрут" in text or "адрес" in text:
+        return "Маршрут уже зафиксирован в заказе. При необходимости диспетчер сможет уточнить адрес подачи по телефону."
+    return "Сообщение принято. Диспетчерская поддержка увидела ваш вопрос и продолжит сопровождение заказа в рамках демонстрационного сценария."

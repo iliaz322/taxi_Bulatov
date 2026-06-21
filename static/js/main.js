@@ -1,4 +1,120 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // Регистрация service worker и логика установки сайта как PWA.
+  const pwaInstallBanner = document.getElementById("pwa-install-banner");
+  const pwaInstallAction = document.getElementById("pwa-install-action");
+  const pwaInstallClose = document.getElementById("pwa-install-close");
+  const pwaInstallCopy = document.getElementById("pwa-install-copy");
+  const pwaDismissKey = "taxigo-pwa-install-dismissed";
+  let deferredInstallPrompt = null;
+
+  const isStandaloneMode = () =>
+    window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+
+  const isIosSafari = () => {
+    const userAgent = window.navigator.userAgent || "";
+    const isIosDevice = /iPad|iPhone|iPod/.test(userAgent);
+    const isSafariBrowser = /Safari/.test(userAgent) && !/CriOS|FxiOS|EdgiOS/.test(userAgent);
+    return isIosDevice && isSafariBrowser;
+  };
+
+  const isBannerDismissed = () => {
+    try {
+      return localStorage.getItem(pwaDismissKey) === "1";
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const dismissBanner = () => {
+    if (pwaInstallBanner) {
+      pwaInstallBanner.hidden = true;
+      pwaInstallBanner.classList.remove("is-visible");
+    }
+    try {
+      localStorage.setItem(pwaDismissKey, "1");
+    } catch (error) {
+      // Игнорируем недоступность localStorage.
+    }
+  };
+
+  const showBanner = (mode = "install") => {
+    if (!pwaInstallBanner || isStandaloneMode() || isBannerDismissed()) {
+      return;
+    }
+
+    if (mode === "ios") {
+      if (pwaInstallCopy) {
+        pwaInstallCopy.textContent = "На iPhone откройте меню «Поделиться» в Safari и выберите «На экран Домой» для установки TaxiGo.";
+      }
+      if (pwaInstallAction) {
+        pwaInstallAction.textContent = "Понятно";
+      }
+    } else {
+      if (pwaInstallCopy) {
+        pwaInstallCopy.textContent = "Открой сайт как приложение: быстрее запуск, отдельная иконка и базовый офлайн-доступ.";
+      }
+      if (pwaInstallAction) {
+        pwaInstallAction.textContent = "Установить";
+      }
+    }
+
+    pwaInstallBanner.hidden = false;
+    requestAnimationFrame(() => {
+      pwaInstallBanner.classList.add("is-visible");
+    });
+  };
+
+  if ("serviceWorker" in navigator && window.isSecureContext) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/service-worker.js").catch(() => {
+        // В демонстрационном проекте молча игнорируем ошибку регистрации.
+      });
+    });
+  }
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    showBanner("install");
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    if (pwaInstallBanner) {
+      pwaInstallBanner.hidden = true;
+      pwaInstallBanner.classList.remove("is-visible");
+    }
+    try {
+      localStorage.removeItem(pwaDismissKey);
+    } catch (error) {
+      // Игнорируем недоступность localStorage.
+    }
+  });
+
+  pwaInstallAction?.addEventListener("click", async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      try {
+        await deferredInstallPrompt.userChoice;
+      } catch (error) {
+        // Ошибка выбора не мешает пользователю продолжать работу с сайтом.
+      }
+      deferredInstallPrompt = null;
+      dismissBanner();
+      return;
+    }
+
+    if (isIosSafari()) {
+      dismissBanner();
+    }
+  });
+
+  pwaInstallClose?.addEventListener("click", dismissBanner);
+
+  if (!isStandaloneMode() && isIosSafari()) {
+    window.setTimeout(() => showBanner("ios"), 1200);
+  }
+
   // Управление масштабом текста на всём сайте.
   const textScaleKey = "taxigo-text-scale";
   const textScaleButtons = [...document.querySelectorAll("[data-text-scale-button]")];
@@ -118,6 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const minPriceNode = document.getElementById("calc-min-price");
   const pricePerKmNode = document.getElementById("calc-price-per-km");
   const totalNode = document.getElementById("calc-total");
+  const checkoutTotalNode = document.getElementById("checkout-submit-total");
 
   if (tariffsNode && tariffSelect && distanceInput) {
     const tariffs = JSON.parse(tariffsNode.textContent);
@@ -150,11 +267,196 @@ document.addEventListener("DOMContentLoaded", () => {
       minPriceNode.textContent = `${minPrice.toFixed(2).replace(".", ",")} ₽`;
       pricePerKmNode.textContent = `${pricePerKm.toFixed(2).replace(".", ",")} ₽`;
       totalNode.textContent = `${total.toFixed(2).replace(".", ",")} ₽`;
+      if (checkoutTotalNode) {
+        checkoutTotalNode.textContent = totalNode.textContent;
+      }
     };
 
     tariffSelect.addEventListener("change", updateCalculator);
     distanceInput.addEventListener("input", updateCalculator);
     updateCalculator();
+  }
+
+  // Выбор способа оплаты и проверка банковской карты до отправки заказа.
+  const paymentCheckout = document.querySelector("[data-payment-checkout]");
+  if (paymentCheckout) {
+    const paymentMethods = [...paymentCheckout.querySelectorAll("[data-payment-method]")];
+    const cardPanel = paymentCheckout.querySelector("[data-card-panel]");
+    const paymentSummary = document.getElementById("calc-payment-method");
+    const cardNumberInput = paymentCheckout.querySelector("[data-card-number]");
+    const cardHolderInput = paymentCheckout.querySelector("[data-card-holder]");
+    const cardMonthInput = paymentCheckout.querySelector("[data-card-month]");
+    const cardYearInput = paymentCheckout.querySelector("[data-card-year]");
+    const cardCvvInput = paymentCheckout.querySelector("[data-card-cvv]");
+    const cardInputs = [cardNumberInput, cardHolderInput, cardMonthInput, cardYearInput, cardCvvInput].filter(Boolean);
+    const demoCardButtons = [...paymentCheckout.querySelectorAll("[data-fill-demo-card]")];
+    const numberPreview = paymentCheckout.querySelector("[data-card-number-preview]");
+    const holderPreview = paymentCheckout.querySelector("[data-card-holder-preview]");
+    const monthPreview = paymentCheckout.querySelector("[data-card-month-preview]");
+    const yearPreview = paymentCheckout.querySelector("[data-card-year-preview]");
+    const digitCount = paymentCheckout.querySelector("[data-card-digit-count]");
+    const demoCardPayload = {
+      number: "4111 1111 1111 1111",
+      holder: "IVAN IVANOV",
+      month: "12",
+      year: "30",
+      cvv: "123",
+    };
+
+    const onlyDigits = (value) => value.replace(/\D/g, "");
+    const formatCardNumber = (value) => onlyDigits(value).match(/.{1,4}/g)?.join(" ") || "";
+    const passesLuhn = (value) => {
+      const digits = onlyDigits(value);
+      if (digits.length !== 16 || new Set(digits).size === 1) return false;
+
+      let checksum = 0;
+      const parity = digits.length % 2;
+      [...digits].forEach((character, index) => {
+        let digit = Number(character);
+        if (index % 2 === parity) {
+          digit *= 2;
+          if (digit > 9) digit -= 9;
+        }
+        checksum += digit;
+      });
+      return checksum % 10 === 0;
+    };
+
+    const setFieldState = (input, state) => {
+      input?.classList.toggle("is-valid", state === "valid");
+      input?.classList.toggle("is-invalid", state === "invalid");
+    };
+
+    const validateCardNumber = () => {
+      if (!cardNumberInput) return true;
+      const digits = onlyDigits(cardNumberInput.value);
+      let message = "";
+      if (digits.length !== 16) {
+        message = `Введите ровно 16 цифр. Сейчас: ${digits.length}.`;
+      } else if (!passesLuhn(digits)) {
+        message = "Проверьте номер карты: контрольная сумма не совпадает.";
+      }
+      cardNumberInput.setCustomValidity(message);
+      setFieldState(cardNumberInput, digits.length === 0 ? "" : message ? "invalid" : "valid");
+      return !message;
+    };
+
+    const validateExpiry = () => {
+      if (!cardMonthInput || !cardYearInput) return true;
+      const month = Number(cardMonthInput.value);
+      const yearText = cardYearInput.value;
+      const now = new Date();
+      const fullYear = 2000 + Number(yearText);
+      const monthIsValid = /^\d{2}$/.test(cardMonthInput.value) && month >= 1 && month <= 12;
+      const yearIsValid = /^\d{2}$/.test(yearText);
+      const isExpired = yearIsValid && monthIsValid &&
+        (fullYear < now.getFullYear() || (fullYear === now.getFullYear() && month < now.getMonth() + 1));
+
+      cardMonthInput.setCustomValidity(monthIsValid ? "" : "Введите месяц от 01 до 12.");
+      cardYearInput.setCustomValidity(!yearIsValid ? "Введите две цифры года." : isExpired ? "Срок действия карты истёк." : "");
+      setFieldState(cardMonthInput, !cardMonthInput.value ? "" : monthIsValid ? "valid" : "invalid");
+      setFieldState(cardYearInput, !yearText ? "" : yearIsValid && !isExpired ? "valid" : "invalid");
+      return monthIsValid && yearIsValid && !isExpired;
+    };
+
+    const validateCvv = () => {
+      if (!cardCvvInput) return true;
+      const isValid = /^\d{3}$/.test(cardCvvInput.value);
+      cardCvvInput.setCustomValidity(isValid ? "" : "CVV должен содержать ровно 3 цифры.");
+      setFieldState(cardCvvInput, !cardCvvInput.value ? "" : isValid ? "valid" : "invalid");
+      return isValid;
+    };
+
+    const updateCardPreview = () => {
+      const digits = onlyDigits(cardNumberInput?.value || "");
+      if (numberPreview) {
+        const previewDigits = `${digits}${"•".repeat(Math.max(0, 16 - digits.length))}`.slice(0, 16);
+        numberPreview.textContent = previewDigits.match(/.{1,4}/g)?.join(" ") || "•••• •••• •••• ••••";
+      }
+      if (holderPreview) {
+        holderPreview.textContent = cardHolderInput?.value.trim().toUpperCase() || "ИМЯ ФАМИЛИЯ";
+      }
+      if (monthPreview) monthPreview.textContent = cardMonthInput?.value || "ММ";
+      if (yearPreview) yearPreview.textContent = cardYearInput?.value || "ГГ";
+      if (digitCount) {
+        digitCount.textContent = `${digits.length}/16`;
+        digitCount.classList.toggle("is-complete", digits.length === 16 && passesLuhn(digits));
+        digitCount.classList.toggle("is-invalid", digits.length > 0 && (digits.length !== 16 || !passesLuhn(digits)));
+      }
+    };
+
+    const fillDemoCard = () => {
+      if (cardNumberInput) cardNumberInput.value = demoCardPayload.number;
+      if (cardHolderInput) cardHolderInput.value = demoCardPayload.holder;
+      if (cardMonthInput) cardMonthInput.value = demoCardPayload.month;
+      if (cardYearInput) cardYearInput.value = demoCardPayload.year;
+      if (cardCvvInput) cardCvvInput.value = demoCardPayload.cvv;
+
+      validateCardNumber();
+      validateExpiry();
+      validateCvv();
+      updateCardPreview();
+    };
+
+    const updatePaymentMethod = () => {
+      const selectedMethod = paymentMethods.find((input) => input.checked)?.value || "cash";
+      const usesCard = selectedMethod === "card";
+      if (cardPanel) cardPanel.hidden = !usesCard;
+      if (paymentSummary) paymentSummary.textContent = usesCard ? "Картой" : "Наличными";
+      cardInputs.forEach((input) => {
+        input.required = usesCard;
+        if (!usesCard) {
+          input.setCustomValidity("");
+          setFieldState(input, "");
+        }
+      });
+      if (usesCard) {
+        updateCardPreview();
+      }
+    };
+
+    cardNumberInput?.addEventListener("input", () => {
+      cardNumberInput.value = formatCardNumber(cardNumberInput.value);
+      validateCardNumber();
+      updateCardPreview();
+    });
+    cardHolderInput?.addEventListener("input", updateCardPreview);
+    cardMonthInput?.addEventListener("input", () => {
+      cardMonthInput.value = onlyDigits(cardMonthInput.value).slice(0, 2);
+      validateExpiry();
+      updateCardPreview();
+    });
+    cardYearInput?.addEventListener("input", () => {
+      cardYearInput.value = onlyDigits(cardYearInput.value).slice(0, 2);
+      validateExpiry();
+      updateCardPreview();
+    });
+    cardCvvInput?.addEventListener("input", () => {
+      cardCvvInput.value = onlyDigits(cardCvvInput.value).slice(0, 3);
+      validateCvv();
+    });
+    paymentMethods.forEach((input) => input.addEventListener("change", updatePaymentMethod));
+    demoCardButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const cardMethod = paymentMethods.find((input) => input.value === "card");
+        if (cardMethod) {
+          cardMethod.checked = true;
+          updatePaymentMethod();
+        }
+        fillDemoCard();
+        cardNumberInput?.focus();
+      });
+    });
+    paymentCheckout.addEventListener("submit", (event) => {
+      const usesCard = paymentMethods.some((input) => input.checked && input.value === "card");
+      if (usesCard && !(validateCardNumber() && validateExpiry() && validateCvv())) {
+        event.preventDefault();
+        paymentCheckout.querySelector(":invalid")?.focus();
+      }
+    });
+
+    updatePaymentMethod();
+    updateCardPreview();
   }
 
   // Выбор точек на Яндекс.Карте и расчет маршрута по дорогам через OSRM.
@@ -556,8 +858,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const modeNode = document.getElementById("tracking-mode-label");
     const statusPillNode = document.querySelector(".status-pill");
     const demoCsrfNode = document.getElementById("ride-demo-csrf");
+    const paymentSectionNode = document.querySelector("[data-payment-section]");
+    const paymentStateBoxNode = document.querySelector("[data-payment-state-box]");
+    const paymentStatusLabelNode = document.getElementById("ride-payment-status-label");
+    const paymentStepMethodNode = document.querySelector('[data-payment-step="method"]');
+    const paymentStepTripNode = document.querySelector('[data-payment-step="trip"]');
+    const paymentStepSettlementNode = document.querySelector('[data-payment-step="settlement"]');
+    const paymentStepTripCopyNode = document.querySelector('[data-payment-step-copy="trip"]');
+    const paymentStepSettlementCopyNode = document.querySelector('[data-payment-step-copy="settlement"]');
 
     const payload = JSON.parse(trackingPayloadNode.textContent);
+    const trackingStorageKey = `taxigo-ride-tracking-${payload.rideId}`;
     const formatKm = (meters) => `${(meters / 1000).toFixed(1)} км`;
     const formatMinutes = (seconds) => {
       const minutes = Math.max(1, Math.round(seconds / 60));
@@ -615,6 +926,66 @@ document.addEventListener("DOMContentLoaded", () => {
       ];
       let completionPersisted = payload.status === "completed";
 
+      const readTrackingState = () => {
+        try {
+          const rawState = localStorage.getItem(trackingStorageKey);
+          if (!rawState) {
+            return null;
+          }
+
+          const parsedState = JSON.parse(rawState);
+          if (!parsedState || !["approach", "trip"].includes(parsedState.phase) || !Number.isFinite(parsedState.startedAt)) {
+            return null;
+          }
+
+          return parsedState;
+        } catch (error) {
+          return null;
+        }
+      };
+
+      const writeTrackingState = (phase, startedAt = Date.now()) => {
+        try {
+          localStorage.setItem(
+            trackingStorageKey,
+            JSON.stringify({
+              phase,
+              startedAt,
+            })
+          );
+        } catch (error) {
+          // Игнорируем, если localStorage недоступен.
+        }
+      };
+
+      const clearTrackingState = () => {
+        try {
+          localStorage.removeItem(trackingStorageKey);
+        } catch (error) {
+          // Игнорируем, если localStorage недоступен.
+        }
+      };
+
+      const syncRideStatus = async (status) => {
+        if (!payload.syncUrl) {
+          return;
+        }
+
+        try {
+          await fetch(payload.syncUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": demoCsrfNode?.value || "",
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({ status }),
+          });
+        } catch (error) {
+          // Демо-трекинг продолжает работать даже если синхронизация временно недоступна.
+        }
+      };
+
       const persistCompletion = async () => {
         if (completionPersisted || !payload.completeUrl) {
           return;
@@ -633,10 +1004,13 @@ document.addEventListener("DOMContentLoaded", () => {
             body: JSON.stringify({ source: "demo-tracking" }),
           });
 
-          if (!response.ok) {
-            throw new Error("Completion sync failed");
-          }
-        } catch (error) {
+           if (!response.ok) {
+             throw new Error("Completion sync failed");
+           }
+
+           clearTrackingState();
+           window.setTimeout(() => window.location.reload(), 700);
+         } catch (error) {
           completionPersisted = false;
         }
       };
@@ -660,12 +1034,87 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       };
 
-      const animateRoute = ({ route, driverMarker, onFrame, onComplete, minDuration = 9000, maxDuration = 22000 }) => {
+      const setPaymentStepState = (node, state) => {
+        if (!node) {
+          return;
+        }
+
+        node.classList.remove("is-current", "is-complete");
+        if (state === "current" || state === "complete") {
+          node.classList.add(state === "current" ? "is-current" : "is-complete");
+        }
+      };
+
+      const renderCompletedPaymentState = () => {
+        const paymentMethod = paymentSectionNode?.dataset.paymentMethod || payload.paymentMethod || "cash";
+        const cardLast4 = paymentSectionNode?.dataset.cardLast4 || paymentStatusLabelNode?.dataset.cardLast4 || "";
+        const ridePrice = paymentSectionNode?.dataset.price || "";
+
+        setPaymentStepState(paymentStepMethodNode, "complete");
+        setPaymentStepState(paymentStepTripNode, "complete");
+        setPaymentStepState(paymentStepSettlementNode, "complete");
+
+        if (paymentStepTripCopyNode) {
+          paymentStepTripCopyNode.textContent = "Поездка завершена";
+        }
+
+        if (paymentStepSettlementCopyNode) {
+          paymentStepSettlementCopyNode.textContent =
+            paymentMethod === "cash" ? "Оплачено наличными" : "Списание выполнено";
+        }
+
+        if (paymentStatusLabelNode) {
+          paymentStatusLabelNode.textContent =
+            paymentMethod === "cash"
+              ? "Оплачено наличными"
+              : cardLast4
+                ? `Оплачено •••• ${cardLast4}`
+                : "Оплачено картой";
+        }
+
+        if (paymentStateBoxNode) {
+          paymentStateBoxNode.innerHTML =
+            paymentMethod === "cash"
+              ? `
+                <div class="payment-success-box payment-success-box-paid">
+                  <strong>Поездка оплачена наличными</strong>
+                  <p class="muted">Демо-оплата отмечена после завершения маршрута${ridePrice ? ` на сумму ${ridePrice} ₽.` : "."}</p>
+                </div>
+              `
+              : `
+                <div class="payment-success-box payment-success-box-paid">
+                  <strong>Оплата завершена</strong>
+                  <p class="muted">Поездка закрыта, средства списаны с карты${cardLast4 ? ` •••• ${cardLast4}` : ""}.</p>
+                </div>
+              `;
+        }
+      };
+
+      const animateRoute = ({
+        route,
+        driverMarker,
+        onFrame,
+        onComplete,
+        startedAtMs = Date.now(),
+        minDuration = 9000,
+        maxDuration = 22000,
+      }) => {
         const simulatedDuration = Math.max(minDuration, Math.min(maxDuration, route.duration * 140));
-        const startedAt = performance.now();
+        const elapsedBeforeStart = Math.max(0, Date.now() - startedAtMs);
+        const startPoint = Math.min(elapsedBeforeStart / simulatedDuration, 1);
+        const initialCoords = getPointAtProgress(route.coords, startPoint);
+        driverMarker.geometry.setCoordinates(initialCoords);
+        onFrame?.(startPoint, route);
+
+        if (startPoint >= 1) {
+          onComplete?.(route);
+          return;
+        }
+
+        const animationStartedAt = performance.now() - elapsedBeforeStart;
 
         const tick = (now) => {
-          const elapsed = now - startedAt;
+          const elapsed = now - animationStartedAt;
           const progress = Math.min(elapsed / simulatedDuration, 1);
           const currentCoords = getPointAtProgress(route.coords, progress);
           driverMarker.geometry.setCoordinates(currentCoords);
@@ -685,7 +1134,29 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
           const fromCoords = await geocodeAddress(payload.fromAddress);
           const toCoords = await geocodeAddress(payload.toAddress);
-          const headingToDestination = payload.status === "active" || payload.status === "completed";
+          if (payload.status === "completed") {
+            clearTrackingState();
+          }
+
+          const storedState = readTrackingState();
+          const currentPhase =
+            payload.status === "completed"
+              ? "completed"
+              : payload.status === "active"
+                ? "trip"
+                : storedState?.phase || "approach";
+          const phaseStartedAt =
+            payload.status === "completed"
+              ? Date.now()
+              : currentPhase === storedState?.phase && storedState?.startedAt
+                ? storedState.startedAt
+                : Date.now();
+
+          if (payload.status !== "completed") {
+            writeTrackingState(currentPhase, phaseStartedAt);
+          }
+
+          const headingToDestination = currentPhase === "trip" || currentPhase === "completed";
           const routeStart = headingToDestination ? fromCoords : getMockDriverOrigin(fromCoords);
           const routeEnd = headingToDestination ? toCoords : fromCoords;
 
@@ -749,6 +1220,9 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           const startTripPhase = () => {
+            const tripStartedAt = Date.now();
+            writeTrackingState("trip", tripStartedAt);
+            syncRideStatus("active");
             activePolyline.geometry.setCoordinates(tripRoute.coords);
             driverMarker.properties.set("balloonContent", "Пассажир в машине");
             setStatusPill("active");
@@ -760,6 +1234,7 @@ document.addEventListener("DOMContentLoaded", () => {
             animateRoute({
               route: tripRoute,
               driverMarker,
+              startedAtMs: tripStartedAt,
               minDuration: 12000,
               maxDuration: 26000,
               onFrame: (progress, route) => {
@@ -779,6 +1254,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (modeNode) {
                   modeNode.textContent = "Пассажир доставлен";
                 }
+                renderCompletedPaymentState();
                 persistCompletion();
               },
             });
@@ -798,17 +1274,51 @@ document.addEventListener("DOMContentLoaded", () => {
             if (distanceNode) {
               distanceNode.textContent = "0.0 км";
             }
+            renderCompletedPaymentState();
             return;
           }
 
           if (headingToDestination) {
-            startTripPhase();
+            activePolyline.geometry.setCoordinates(tripRoute.coords);
+            driverMarker.properties.set("balloonContent", "Пассажир в машине");
+            setStatusPill("active");
+            if (modeNode) {
+              modeNode.textContent = "Водитель везёт пассажира";
+            }
+            animateRoute({
+              route: tripRoute,
+              driverMarker,
+              startedAtMs: phaseStartedAt,
+              minDuration: 12000,
+              maxDuration: 26000,
+              onFrame: (progress, route) => {
+                const remainingDistance = route.distance * (1 - progress);
+                const remainingDuration = route.duration * (1 - progress);
+
+                if (etaNode) {
+                  etaNode.textContent = progress >= 1 ? "Поездка завершена" : formatMinutes(remainingDuration);
+                }
+                if (distanceNode) {
+                  distanceNode.textContent = progress >= 1 ? "0.0 км" : formatKm(remainingDistance);
+                }
+              },
+              onComplete: () => {
+                driverMarker.properties.set("balloonContent", "Поездка завершена");
+                setStatusPill("completed");
+                if (modeNode) {
+                  modeNode.textContent = "Пассажир доставлен";
+                }
+                renderCompletedPaymentState();
+                persistCompletion();
+              },
+            });
             return;
           }
 
           animateRoute({
             route: approachRoute,
             driverMarker,
+            startedAtMs: phaseStartedAt,
             onFrame: (progress, route) => {
               const remainingDistance = route.distance * (1 - progress);
               const remainingDuration = route.duration * (1 - progress);

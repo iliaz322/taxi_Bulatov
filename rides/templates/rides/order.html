@@ -26,6 +26,10 @@
             <span>Примерная стоимость</span>
             <strong id="calc-total">—</strong>
         </div>
+        <div class="summary-item">
+            <span>Способ оплаты</span>
+            <strong id="calc-payment-method">{% if form.payment_method.value == "card" %}Картой{% else %}Наличными{% endif %}</strong>
+        </div>
         <div class="summary-divider"></div>
         <div class="summary-note">
             <strong>Что дальше</strong>
@@ -54,18 +58,147 @@
                 <span class="muted">Маршрут строится по дорогам через бесплатный OSRM, расстояние и стоимость обновляются автоматически.</span>
             </div>
         </div>
-        <form method="post" class="ride-order-form">
+        <form method="post" class="ride-order-form ride-checkout-form" data-payment-checkout>
             {% csrf_token %}
-            {% for field in form %}
-                <div class="form-group">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-                    {% for error in field.errors %}
-                        <div class="field-error">{{ error }}</div>
-                    {% endfor %}
-                </div>
+            {% for error in form.non_field_errors %}
+                <div class="form-alert">{{ error }}</div>
             {% endfor %}
-            <button type="submit" class="button">Подтвердить поездку</button>
+
+            <section class="checkout-section">
+                <div class="checkout-section-heading">
+                    <span class="checkout-step-number">1</span>
+                    <div>
+                        <h3>Маршрут и тариф</h3>
+                        <p>Проверьте адреса и выберите подходящий класс автомобиля.</p>
+                    </div>
+                </div>
+
+                <div class="checkout-fields-grid">
+                    <div class="form-group checkout-field-wide">
+                        <label for="{{ form.from_address.id_for_label }}">{{ form.from_address.label }}</label>
+                        {{ form.from_address }}
+                        {% for error in form.from_address.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="form-group checkout-field-wide">
+                        <label for="{{ form.to_address.id_for_label }}">{{ form.to_address.label }}</label>
+                        {{ form.to_address }}
+                        {% for error in form.to_address.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.tariff.id_for_label }}">{{ form.tariff.label }}</label>
+                        {{ form.tariff }}
+                        {% for error in form.tariff.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.distance_km.id_for_label }}">{{ form.distance_km.label }}</label>
+                        {{ form.distance_km }}
+                        {% for error in form.distance_km.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="form-group checkout-field-wide">
+                        <label for="{{ form.comment.id_for_label }}">{{ form.comment.label }}</label>
+                        {{ form.comment }}
+                        {% for error in form.comment.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="checkout-section checkout-payment-section">
+                <div class="checkout-section-heading">
+                    <span class="checkout-step-number">2</span>
+                    <div>
+                        <h3>Как оплатить поездку?</h3>
+                        <p>Выберите удобный способ. Его можно проверить до подтверждения заказа.</p>
+                    </div>
+                </div>
+
+                <div class="payment-method-picker" role="radiogroup" aria-label="Способ оплаты">
+                    <label class="payment-method-option">
+                        <input type="radio" name="payment_method" value="cash" {% if form.payment_method.value != "card" %}checked{% endif %} data-payment-method>
+                        <span class="payment-method-icon payment-method-icon-cash" aria-hidden="true">₽</span>
+                        <span class="payment-method-copy">
+                            <strong>Наличными</strong>
+                            <small>Оплата водителю после поездки</small>
+                        </span>
+                        <span class="payment-method-check" aria-hidden="true"></span>
+                    </label>
+                    <label class="payment-method-option">
+                        <input type="radio" name="payment_method" value="card" {% if form.payment_method.value == "card" %}checked{% endif %} data-payment-method>
+                        <span class="payment-method-icon payment-method-icon-card" aria-hidden="true"></span>
+                        <span class="payment-method-copy">
+                            <strong>Банковской картой</strong>
+                            <small>Привязка сейчас, списание после поездки</small>
+                        </span>
+                        <span class="payment-method-check" aria-hidden="true"></span>
+                    </label>
+                </div>
+
+                <div class="checkout-card-panel" data-card-panel {% if form.payment_method.value != "card" %}hidden{% endif %}>
+                    <div class="bank-card-preview" data-card-preview>
+                        <div class="bank-card-topline">
+                            <span class="bank-card-chip" aria-hidden="true"></span>
+                            <span class="bank-card-demo">DEMO CARD</span>
+                        </div>
+                        <strong class="bank-card-number" data-card-number-preview>•••• •••• •••• ••••</strong>
+                        <div class="bank-card-bottomline">
+                            <div>
+                                <small>Держатель</small>
+                                <span data-card-holder-preview>ИМЯ ФАМИЛИЯ</span>
+                            </div>
+                            <div>
+                                <small>Действует до</small>
+                                <span><span data-card-month-preview>ММ</span>/<span data-card-year-preview>ГГ</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-details-fields">
+                        <div class="form-group card-number-field">
+                            <div class="field-label-row">
+                                <label for="{{ form.card_number.id_for_label }}">{{ form.card_number.label }}</label>
+                                <span class="card-digit-count" data-card-digit-count>0/16</span>
+                            </div>
+                            {{ form.card_number }}
+                            <div class="field-help-row">
+                                <small class="field-help">Для демо можно использовать 4111 1111 1111 1111.</small>
+                                <button type="button" class="mini-inline-button" data-fill-demo-card>Заполнить тестовой картой</button>
+                            </div>
+                            {% for error in form.card_number.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="form-group card-holder-field">
+                            <label for="{{ form.card_holder.id_for_label }}">{{ form.card_holder.label }}</label>
+                            {{ form.card_holder }}
+                            {% for error in form.card_holder.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.expiry_month.id_for_label }}">Месяц</label>
+                            {{ form.expiry_month }}
+                            {% for error in form.expiry_month.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.expiry_year.id_for_label }}">Год</label>
+                            {{ form.expiry_year }}
+                            {% for error in form.expiry_year.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ form.cvv.id_for_label }}">{{ form.cvv.label }}</label>
+                            {{ form.cvv }}
+                            {% for error in form.cvv.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                    <div class="card-security-note">
+                        <strong>Безопасный демо-режим</strong>
+                        <span>Сайт сохраняет только последние четыре цифры. Номер карты и CVV не записываются в базу.</span>
+                    </div>
+                </div>
+            </section>
+
+            <div class="checkout-submit-bar">
+                <div>
+                    <span>К оплате после поездки</span>
+                    <strong id="checkout-submit-total">—</strong>
+                </div>
+                <button type="submit" class="button checkout-submit-button">Подтвердить заказ</button>
+            </div>
         </form>
     </div>
 </div>

@@ -44,6 +44,16 @@ class Ride(models.Model):
         ("completed", "Завершена"),
         ("cancelled", "Отменена"),
     ]
+    PAYMENT_STATUS = [
+        ("unpaid", "Не оплачено"),
+        ("cash_pending", "Оплата наличными"),
+        ("authorized", "Карта привязана"),
+        ("paid", "Оплачено"),
+    ]
+    PAYMENT_METHOD = [
+        ("cash", "Наличными"),
+        ("card", "Картой"),
+    ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="rides", verbose_name="Пользователь")
     tariff = models.ForeignKey(Tariff, on_delete=models.SET_NULL, null=True, verbose_name="Тариф")
@@ -57,6 +67,10 @@ class Ride(models.Model):
     driver_name = models.CharField("Водитель", max_length=100, blank=True)
     driver_car = models.CharField("Автомобиль", max_length=100, blank=True)
     driver_plate = models.CharField("Номер", max_length=20, blank=True)
+    payment_method = models.CharField("Способ оплаты", max_length=10, choices=PAYMENT_METHOD, default="cash")
+    payment_status = models.CharField("Статус оплаты", max_length=20, choices=PAYMENT_STATUS, default="unpaid")
+    card_last4 = models.CharField("Последние 4 цифры карты", max_length=4, blank=True)
+    paid_at = models.DateTimeField("Оплачено", null=True, blank=True)
     rating = models.PositiveSmallIntegerField("Оценка", null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(5)])
 
     class Meta:
@@ -79,3 +93,23 @@ class DriverReview(models.Model):
 
     def __str__(self):
         return f"Отзыв к поездке #{self.ride_id}"
+
+
+class SupportMessage(models.Model):
+    SENDER_CHOICES = [
+        ("client", "Клиент"),
+        ("dispatcher", "Диспетчер"),
+    ]
+
+    ride = models.ForeignKey(Ride, on_delete=models.CASCADE, related_name="support_messages", verbose_name="Поездка")
+    sender = models.CharField("Отправитель", max_length=20, choices=SENDER_CHOICES)
+    text = models.TextField("Текст сообщения")
+    created_at = models.DateTimeField("Создано", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Сообщение поддержки"
+        verbose_name_plural = "Сообщения поддержки"
+        ordering = ["created_at", "id"]
+
+    def __str__(self):
+        return f"{self.get_sender_display()} — поездка #{self.ride_id}"

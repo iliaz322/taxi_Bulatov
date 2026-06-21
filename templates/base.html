@@ -5,6 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Taxi Project{% endblock %}</title>
+    <meta name="application-name" content="TaxiGo">
+    <meta name="theme-color" content="#1c1c1e">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="TaxiGo">
     <script>
         (function () {
             try {
@@ -16,13 +22,16 @@
             }
         })();
     </script>
+    <link rel="icon" href="{% static 'img/taxigo-mark.svg' %}" type="image/svg+xml">
+    <link rel="manifest" href="{% url 'rides:manifest' %}">
+    <link rel="apple-touch-icon" href="{% static 'img/taxigo-mark.svg' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
     <header class="site-header">
         <div class="container nav">
             <a class="logo" href="{% url 'rides:index' %}">
-                <span class="logo-mark"></span>
+                <img class="logo-mark" src="{% static 'img/taxigo-mark.svg' %}" alt="" width="34" height="34">
                 <span>TaxiGo</span>
             </a>
             <input id="nav-toggle" class="nav-toggle" type="checkbox">
@@ -77,6 +86,20 @@
             </div>
         </div>
     </footer>
+
+    <aside class="pwa-install-banner" id="pwa-install-banner" hidden>
+        <div class="pwa-install-banner__icon" aria-hidden="true">
+            <img src="{% static 'img/pwa/icon-192.png' %}" alt="" width="56" height="56">
+        </div>
+        <div class="pwa-install-banner__copy">
+            <strong>Установить TaxiGo</strong>
+            <p id="pwa-install-copy">Открой сайт как приложение: быстрее запуск, отдельная иконка и базовый офлайн-доступ.</p>
+        </div>
+        <div class="pwa-install-banner__actions">
+            <button class="button button-small" type="button" id="pwa-install-action">Установить</button>
+            <button class="pwa-install-close" type="button" id="pwa-install-close" aria-label="Скрыть подсказку">×</button>
+        </div>
+    </aside>
 
     <script src="{% static 'js/main.js' %}"></script>
     {% block extra_js %}{% endblock %}

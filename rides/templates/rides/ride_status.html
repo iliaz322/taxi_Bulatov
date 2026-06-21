@@ -4,13 +4,13 @@
 {% block title %}Статус поездки{% endblock %}
 
 {% block content %}
-<section class="section-header">
+<section class="section-header ride-status-header">
     <h1>Статус поездки</h1>
-    <p>Следите за поездкой и данными назначенного водителя.</p>
+    <p>Следите за машиной, статусом оплаты и общением с поддержкой в одном экране.</p>
 </section>
 
-<div class="status-layout">
-    <article class="card">
+<div class="status-layout ride-status-top-layout">
+    <article class="card ride-status-main-card">
         <div class="status-row">
             <span class="status-pill status-{{ ride.status }}">{{ ride.get_status_display }}</span>
             <span class="muted">{{ ride.created_at|date:"d.m.Y H:i" }}</span>
@@ -28,11 +28,28 @@
                 <span>Тариф</span>
                 <strong>{{ ride.tariff.name }}</strong>
             </div>
+            <div class="summary-item">
+                <span>Статус оплаты</span>
+                <strong id="ride-payment-status-label" data-payment-method="{{ ride.payment_method }}" data-card-last4="{{ ride.card_last4|default:'' }}">
+                    {% if ride.payment_status == "paid" %}
+                        Оплачено{% if ride.payment_method == "card" and ride.card_last4 %} •••• {{ ride.card_last4 }}{% else %} наличными{% endif %}
+                    {% elif ride.payment_status == "cash_pending" %}
+                        Наличными после поездки
+                    {% elif ride.payment_status == "authorized" %}
+                        Карта привязана •••• {{ ride.card_last4 }}
+                    {% else %}
+                        Не оплачено
+                    {% endif %}
+                </strong>
+            </div>
         </div>
     </article>
 
-    <article class="card status-driver-card">
-        <h2>Водитель</h2>
+    <article class="card status-driver-card ride-driver-card">
+        <div class="ride-driver-card-head">
+            <h2>Водитель</h2>
+            <span class="tracking-badge">Тариф {{ ride.tariff.name }}</span>
+        </div>
         <div class="driver-card">
             <p><strong>{{ ride.driver_name|default:"Водитель подбирается" }}</strong></p>
             <p>{{ ride.driver_car|default:"Автомобиль будет назначен" }}</p>
@@ -47,7 +64,9 @@
             <div>
                 <h2>Машина на карте</h2>
                 <p class="muted">
-                    {% if ride.status == "active" %}
+                    {% if ride.payment_status == "unpaid" and ride.status != "completed" and user == ride.user %}
+                        Сначала привяжите карту. После этого водитель начнёт движение к точке подачи.
+                    {% elif ride.status == "active" %}
                         Показываем примерный маршрут до точки назначения.
                     {% else %}
                         Показываем примерный подъезд водителя к точке подачи.
@@ -56,24 +75,187 @@
             </div>
             <span class="tracking-badge">Демо-трекинг</span>
         </div>
-        <div id="ride-status-map" class="ride-map" aria-label="Карта движения водителя"></div>
-        <div class="tracking-summary">
-            <div>
-                <span class="muted">Сценарий</span>
-                <strong id="tracking-mode-label">
-                    {% if ride.status == "active" %}Водитель везёт пассажира{% else %}Водитель едет на подачу{% endif %}
-                </strong>
+        {% if ride.payment_status == "unpaid" and ride.status != "completed" and user == ride.user %}
+            <div class="tracking-lock">
+                <span class="tracking-lock-icon" aria-hidden="true">••••</span>
+                <div>
+                    <strong>Трекинг откроется после привязки карты</strong>
+                    <p>Сейчас ничего не списывается. Карта нужна, чтобы подтвердить способ оплаты поездки.</p>
+                </div>
+                <a class="button" href="#ride-payment">Привязать карту</a>
             </div>
-            <div>
-                <span class="muted">Примерное время</span>
-                <strong id="tracking-eta">—</strong>
+        {% else %}
+            <div id="ride-status-map" class="ride-map" aria-label="Карта движения водителя"></div>
+            <div class="tracking-summary">
+                <div>
+                    <span class="muted">Сценарий</span>
+                    <strong id="tracking-mode-label">
+                        {% if ride.status == "active" %}Водитель везёт пассажира{% else %}Водитель едет на подачу{% endif %}
+                    </strong>
+                </div>
+                <div>
+                    <span class="muted">Примерное время</span>
+                    <strong id="tracking-eta">—</strong>
+                </div>
+                <div>
+                    <span class="muted">Осталось по маршруту</span>
+                    <strong id="tracking-distance">—</strong>
+                </div>
             </div>
-            <div>
-                <span class="muted">Осталось по маршруту</span>
-                <strong id="tracking-distance">—</strong>
-            </div>
-        </div>
+        {% endif %}
     </article>
+{% endif %}
+
+{% if user.is_authenticated and user == ride.user %}
+    <div class="status-layout">
+        <article class="card ride-payment-card" id="ride-payment" data-payment-section data-payment-method="{{ ride.payment_method }}" data-card-last4="{{ ride.card_last4|default:'' }}" data-price="{{ ride.price }}">
+            <div class="tracking-card-header ride-payment-head">
+                <div>
+                    <h2>Оплата поездки</h2>
+                    <p class="muted">Сценарий похож на сервисы такси: карта привязывается заранее, а списание происходит после завершения поездки.</p>
+                </div>
+                <span class="tracking-badge">{% if ride.payment_method == "cash" %}Наличные{% else %}Карта{% endif %}</span>
+            </div>
+
+            <div class="payment-flow" aria-label="Этапы оплаты поездки">
+                <div class="payment-flow-step {% if ride.payment_status != 'unpaid' %}is-complete{% else %}is-current{% endif %}" data-payment-step="method">
+                    <span>1</span>
+                    <strong>{% if ride.payment_method == "cash" %}Способ оплаты{% else %}Привязка карты{% endif %}</strong>
+                    <small data-payment-step-copy="method">{% if ride.payment_method == "cash" %}Выбраны наличные{% else %}Без списания{% endif %}</small>
+                </div>
+                <div class="payment-flow-step {% if ride.payment_status == 'paid' %}is-complete{% elif ride.payment_status == 'authorized' or ride.payment_status == 'cash_pending' %}is-current{% endif %}" data-payment-step="trip">
+                    <span>2</span>
+                    <strong>Поездка</strong>
+                    <small data-payment-step-copy="trip">Машина в пути</small>
+                </div>
+                <div class="payment-flow-step {% if ride.payment_status == 'paid' %}is-complete{% endif %}" data-payment-step="settlement">
+                    <span>3</span>
+                    <strong>{% if ride.payment_method == "cash" %}Оплата водителю{% else %}Списание{% endif %}</strong>
+                    <small data-payment-step-copy="settlement">После завершения</small>
+                </div>
+            </div>
+
+            <div data-payment-state-box>
+                {% if ride.payment_method == "cash" %}
+                    {% if ride.payment_status == "paid" %}
+                        <div class="payment-success-box payment-success-box-paid">
+                            <strong>Поездка оплачена наличными</strong>
+                            <p class="muted">Демонстрационная оплата отмечена после завершения маршрута{% if ride.paid_at %} в {{ ride.paid_at|date:"d.m.Y H:i" }}{% endif %}.</p>
+                        </div>
+                    {% else %}
+                        <div class="cash-payment-box">
+                            <span class="cash-payment-symbol" aria-hidden="true">₽</span>
+                            <div>
+                                <strong>Оплата водителю наличными</strong>
+                                <p class="muted">Карта не требуется. После завершения поездки передайте водителю {{ ride.price }} ₽.</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% elif ride.payment_status == "paid" %}
+                    <div class="payment-success-box payment-success-box-paid">
+                        <strong>Оплата завершена</strong>
+                        <p class="muted">Поездка закрыта, средства списаны с карты •••• {{ ride.card_last4 }}{% if ride.paid_at %} в {{ ride.paid_at|date:"d.m.Y H:i" }}{% endif %}.</p>
+                    </div>
+                {% elif ride.payment_status == "authorized" %}
+                    <div class="payment-success-box payment-success-box-authorized">
+                        <strong>Карта привязана</strong>
+                        <p class="muted">Карта •••• {{ ride.card_last4 }} сохранена для этого заказа. Когда поездка завершится, система автоматически выполнит демонстрационное списание.</p>
+                    </div>
+                {% else %}
+                    <div class="payment-hero">
+                        <div class="payment-hero-copy">
+                            <strong>Привяжите карту до начала поездки</strong>
+                            <p class="muted">После привязки водитель начнёт движение, а деньги будут списаны только в конце маршрута.</p>
+                        </div>
+                    </div>
+                    <form method="post" action="{% url 'rides:pay_ride' ride.pk %}" class="payment-form-grid ride-payment-form">
+                        {% csrf_token %}
+                        <div class="form-group payment-form-wide">
+                            <label for="{{ payment_form.card_number.id_for_label }}">Номер карты</label>
+                            {{ payment_form.card_number }}
+                            <div class="field-help-row">
+                                <small class="field-help">Для демо подойдёт 4111 1111 1111 1111.</small>
+                                <button type="button" class="mini-inline-button" data-fill-demo-card>Заполнить тестовой картой</button>
+                            </div>
+                            {% for error in payment_form.card_number.errors %}
+                                <div class="field-error">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-group payment-form-wide">
+                            <label for="{{ payment_form.card_holder.id_for_label }}">Имя держателя</label>
+                            {{ payment_form.card_holder }}
+                            {% for error in payment_form.card_holder.errors %}
+                                <div class="field-error">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ payment_form.expiry_month.id_for_label }}">Месяц</label>
+                            {{ payment_form.expiry_month }}
+                            {% for error in payment_form.expiry_month.errors %}
+                                <div class="field-error">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ payment_form.expiry_year.id_for_label }}">Год</label>
+                            {{ payment_form.expiry_year }}
+                            {% for error in payment_form.expiry_year.errors %}
+                                <div class="field-error">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-group">
+                            <label for="{{ payment_form.cvv.id_for_label }}">CVV</label>
+                            {{ payment_form.cvv }}
+                            {% for error in payment_form.cvv.errors %}
+                                <div class="field-error">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="payment-actions">
+                            <button class="button" type="submit">Привязать карту</button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </article>
+
+        <article class="card support-card">
+            <div class="tracking-card-header">
+                <div>
+                    <h2>Чат с диспетчером</h2>
+                    <p class="muted">Можно задать вопрос по поездке, оплате, маршруту или назначенному автомобилю.</p>
+                </div>
+                <span class="tracking-badge">Поддержка</span>
+            </div>
+
+            <div class="support-chat-list">
+                {% for message in support_messages %}
+                    <div class="support-chat-message support-chat-message-{{ message.sender }}">
+                        <div class="support-chat-meta">
+                            <strong>{% if message.sender == "client" %}Вы{% else %}Диспетчер{% endif %}</strong>
+                            <span class="muted">{{ message.created_at|date:"d.m.Y H:i" }}</span>
+                        </div>
+                        <p>{{ message.text }}</p>
+                    </div>
+                {% empty %}
+                    <div class="payment-success-box">
+                        <strong>Сообщений пока нет</strong>
+                        <p class="muted">Напишите первый вопрос, и система добавит ответ диспетчера в демонстрационном режиме.</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <form method="post" action="{% url 'rides:support_chat' ride.pk %}" class="support-chat-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="{{ support_form.text.id_for_label }}">Ваш вопрос</label>
+                    {{ support_form.text }}
+                    {% for error in support_form.text.errors %}
+                        <div class="field-error">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <button class="button" type="submit">Отправить сообщение</button>
+            </form>
+        </article>
+    </div>
 {% endif %}
 
 {% if ride.status == "completed" and ride.rating is None and user.is_authenticated and user == ride.user %}
@@ -103,7 +285,9 @@
     </article>
 {% endif %}
 
-{{ tracking_payload|json_script:"ride-tracking-payload" }}
-<input type="hidden" id="ride-demo-csrf" value="{{ csrf_token }}">
-<script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_maps_api_key }}&lang=ru_RU"></script>
+{% if ride.payment_status != "unpaid" or ride.status == "completed" %}
+    {{ tracking_payload|json_script:"ride-tracking-payload" }}
+    <input type="hidden" id="ride-demo-csrf" value="{{ csrf_token }}">
+    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_maps_api_key }}&lang=ru_RU"></script>
+{% endif %}
 {% endblock %}
