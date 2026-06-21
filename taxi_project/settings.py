@@ -1,20 +1,25 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def env_list(name, default):
+    value = os.getenv(name, default)
+    return [item.strip() for item in value.split(",") if item.strip()]
+
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key")
 DEBUG = os.getenv("DJANGO_DEBUG", "True") == "True"
-ALLOWED_HOSTS = os.getenv(
+ALLOWED_HOSTS = env_list(
     "DJANGO_ALLOWED_HOSTS",
-    "127.0.0.1,localhost,testserver,192.168.1.66,.ngrok-free.app,.ngrok-free.dev,.ngrok.app,.ngrok.dev",
-).split(",")
+    "127.0.0.1,localhost,testserver,192.168.1.66,138.16.226.155,taxi.super-main4.sbs,super-main4.sbs,.ngrok-free.app,.ngrok-free.dev,.ngrok.app,.ngrok.dev",
+)
 
-CSRF_TRUSTED_ORIGINS = os.getenv(
+CSRF_TRUSTED_ORIGINS = env_list(
     "DJANGO_CSRF_TRUSTED_ORIGINS",
-    "https://*.ngrok-free.app,https://*.ngrok-free.dev,https://*.ngrok.app,https://*.ngrok.dev",
-).split(",")
+    "https://taxi.super-main4.sbs,https://super-main4.sbs,http://taxi.super-main4.sbs,http://super-main4.sbs,https://*.ngrok-free.app,https://*.ngrok-free.dev,https://*.ngrok.app,https://*.ngrok.dev",
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
